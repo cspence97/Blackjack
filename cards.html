@@ -3,8 +3,8 @@
 <html>
     <head>
         <meta charset="utf-8" />
-        <link href="/styles.css" rel="stylesheet">
         <link href="https://fonts.googleapis.com/css2?family=Lato&display=swap" rel="stylesheet">
+        <link href="bjstyles.css" rel="stylesheet">
     </head>
     <script src="cards.js"></script>
     <body onload="main()" class="noselect">
@@ -23,8 +23,6 @@
             </table>
             <button class="noselect" onclick="getHighScores()">Refresh</button>
         </div>
-        
-        
         <img id="table" src="table.png"/>
         <div class="collection" id="thedealer">
             <div id="hide" class="card"></div>
@@ -39,7 +37,6 @@
             <h3 class="gameover" id="bust">Bust!</h3>
             <h3 class="gameover" id="push">Push!</h3>
             <h3 class="gameover" id="blackjack">Blackjack!</h3>
-
         </div>
         <div class="collection" id="temphand">
             <div id="temp">
@@ -75,6 +72,5 @@
             <button class="buttons" onclick="doubleDown()">Double Down</button>
             <button class="buttons" onclick="split()">Split</button>
         </div>
-    </body>
-    
+    </body> 
 </html>
