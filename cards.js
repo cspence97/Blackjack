@@ -44,11 +44,12 @@ function main(){
             console.log("tried at " + (i*(k+1)));
         }
     }
-    
+
+    /*
     ar = myDeck.split('\n');
     for(var s = 0; s < ar.length; s++){
         console.log(ar[s]);
-    }
+    }*/
 
     getHighScores();
 }
@@ -81,7 +82,6 @@ function createDeck(){
             deck.push(card);
         } 
     }
-    console.log(deck.length);
     return deck;
 }
 
@@ -157,17 +157,13 @@ async function deal(deck){
 
         //records our bet and doesn't let us pass until we give a valid one
         bet = parseInt(document.getElementById('bet').value, 10);
-        console.log("bet: " + bet);
         if(bet > balance){
-            console.log("bad bet");
             document.getElementById('badbet').style.display = "block";
             return;
         }else if(bet > 0){
-            console.log("good bet");
             document.getElementById('bet').disabled = true;
             document.getElementById('username').disabled = true;
         }else{
-            console.log("bad bet");
             document.getElementById('badbet').style.display = "block";
             return;
         }
@@ -175,13 +171,10 @@ async function deal(deck){
         //when we get below one deck length reset to 5 decks and shuffle
         document.getElementById('shuffling').style.display = 'block';
         if(deck.length <= 52){
-            console.log("shuffling...");
             main();
             await sleep(1500);
         }
         document.getElementById('shuffling').style.display = 'none';
-
-        console.log("starting deal");
         
         //clear card image divs and reset vars
         document.getElementById('hand').innerHTML = '';
@@ -271,7 +264,7 @@ function hit(toHand, handName){
     if(!gameOver){
         if(handName == 'hand'){
             //Changes which hand we should be hitting since the hit button calls this function the same no matter the hand
-            if(splitCount == 1 && splitHands.length == 1){  //one split
+            if(splitCount == 1 && splitHands.length == 1 && checkVals(splitHands[0]) != -1){  //one split
                 toHand = splitHands[splitCount - 1];
                 handName = 'temp';
             }else if(splitCount == 2){  //two splits
@@ -286,10 +279,7 @@ function hit(toHand, handName){
                     handName = 'temp';
                 }
             }
-            if(splitCount == 0){
-                toHand = hand;
-                handName = "hand";
-            }
+            
             //don't let us hit on dealer's turn
             if(dealerTurn){
                 return;
@@ -299,7 +289,8 @@ function hit(toHand, handName){
                 splitCount = 0;
             }
         }
-        console.log(handName);
+
+        //deal next card in deck and draw it on board.  add it to whatever hand is being dealt to
         if(checkVals(toHand) < 21){
             if(handName != "dealer" && dealerTurn){
                 return;
@@ -325,12 +316,13 @@ function hit(toHand, handName){
             document.getElementById(handName).appendChild(card);
             toHand.push(deck1.shift());
         }
+
+        //check for busts immediately following deal
         if(checkVals(toHand) > 21){
             switch (handName){
                 case "dealer":
                     gameOver = true;
                     document.getElementById('dbust').style.display = "block";
-
                     // if dealer busts 
                     for(var i = 0; i < splitHands.length; i++){
                         if(checkVals(splitHands[i]) <= 21 && checkVals(splitHands[i]) != -1){
@@ -338,10 +330,7 @@ function hit(toHand, handName){
                                 document.getElementById('twin').style.display = 'block';
                             }else if(i == 1){
                                 document.getElementById('ttwin').style.display = 'block';
-                            }else{
-								console.log("split hands paid an extra one here at: " + tbet[i]);
                             }
-                            
                             win(tbet[i]);
                         }
                     }
@@ -354,9 +343,9 @@ function hit(toHand, handName){
                 case "hand":
                     lose(bet);
                     document.getElementById('bust').style.display = "block";
+                    //check and see if there are more hands yet to play
                     if(splitHands.length == 0){
                         gameOver = true;
-                        console.log("bust");
                     }else{
                         var bustCount = 0;
                         for(var i = 0; i < splitHands.length; i++){
@@ -366,7 +355,6 @@ function hit(toHand, handName){
                         }
                         if(bustCount == splitHands.length){
                             gameOver = true;
-                            console.log("bust");
                         }
                         stay();
                     }
@@ -400,12 +388,12 @@ function hit(toHand, handName){
                     break;
             }
         }
-        //check split for blackjack.  normal blackjack not affected since it will detect on deal before chance to hit
+
+        //check for blackjack following a deal
         if(checkVals(toHand) == -1){
             blackJack();
             switch(handName){
                 case 'temp': 
-                    //why isn't this being called
                     stay();
                     document.getElementById('tblackjack').style.display = 'block';
                     break;
@@ -425,10 +413,8 @@ function hit(toHand, handName){
                     if(c == splitHands.length){
                         gameOver = true;
                     }
+                    break;
             }
-            
-            console.log("splitcount: " + splitCount + " ")
-            //splitCount--;
         }
     }
 }
@@ -436,8 +422,7 @@ function hit(toHand, handName){
 //double bet and hit once if we haven't hit yet
 function doubleDown(){
     var ourBet;
-
-
+    //double down on original hand
     if(splitCount == 0){
         if(betTalley + bet > balance || hand.length != 2){
             return;
@@ -447,7 +432,6 @@ function doubleDown(){
         hit(hand, 'hand');
         stay();
     }else{
-        
         //for when we've stayed on split1 and split again on OG hand
         if(splitCount == 1 && splitHands.length > 1 && stayCount > 0){
             if(splitHands[1].length != 2){
@@ -485,19 +469,19 @@ async function split(){
     if(gameOver){
         return;
     }
-    if(betTalley + bet > balance){
+    if(betTalley + bet > balance){  //don't let us split when we can't afford it
         return;
     }
+    //Add our bet to total bet amount and split.  for when we split the original card with no other splits
     betTalley += bet;
     if(splitHands.length == 0){
         if(hand[0].Value != hand[1].Value){
             return;
-        }
-        
+        } 
+        //deals a card and draws it to a new hand
         handDIV = document.getElementById("hand" + hand[0].Name + "" + hand[0].Suit).remove();
         splitHands.push([hand.shift()]);
         tbet.push(bet);
-        console.log("pushed bet of " + bet + " as val " + tbet[0]);
         thand = document.getElementById('temp');
         
         var card = document.createElement("div");
@@ -520,6 +504,7 @@ async function split(){
         card.id = "temp" + splitHands[0][0].Name + "" + splitHands[0][0].Suit;
         thand.appendChild(card);
         
+        //deal card to new hand then to our hand
         await sleep(300);
         hit(splitHands[0], 'temp');
         await sleep(300);
@@ -528,24 +513,16 @@ async function split(){
 
 
     }else{
-        //limit to two split for now just cuz we don't have much space on the board until css is redesigned
+        //for when we have a split already
         if(splitHands.length == 1){
-            //COMMENTED BECAUSE SPLITTING OG HAND SHOULD ONLY BE POSSIBLE WHEN SPLITCOUNT =0 EVEN AFTER WE"VE SPLIT
-            //check if splitting first hand or second hand or if one can at all
-            //splitcount == 0 so we can only perform this split on turn 1
+            //make sure our hand can be split
             if(hand.length == 2 && hand[0].Value == hand[1].Value && splitCount == 0){
                 stayCount++;
+                //deal a card and draw it to our second split hand
                 handDIV = document.getElementById("hand" + hand[0].Name + "" + hand[0].Suit).remove();
-
                 splitHands.push([hand.shift()]);
                 tbet.push(bet);
-                console.log("pushed bet of " + bet + " as val " + tbet[1]);
-
-
-
-                
-                thand = document.getElementById('temp2');
-                
+                thand = document.getElementById('temp2');              
                 var card = document.createElement("div");
                 var icon='';
                 if (splitHands[1][0].Suit == 'Hearts'){
@@ -566,19 +543,19 @@ async function split(){
                 card.id = "temp2" + splitHands[1][0].Name + "" + splitHands[1][0].Suit;
                 thand.appendChild(card);
                 
+                //deal a card to new hand then original hand
                 await sleep(300);
                 hit(splitHands[1], 'temp2');
                 await sleep(300);
                 hit(hand, 'hand');
                 splitCount++;
             }  
+            //for when we split a split.  Deal a card and draw it to new split hand
             if(splitHands[0].length == 2 && splitHands[0][0].Value == splitHands[0][1].Value){
                 handDIV = document.getElementById("temp" + splitHands[0][0].Name + "" + splitHands[0][0].Suit).remove();
                 splitHands.push([splitHands[0].shift()]);
                 tbet.push(bet);
-                console.log("pushed bet of " + bet + " as val " + tbet[1]);
                 thand = document.getElementById('temp2');
-                
                 var card = document.createElement("div");
                 var icon='';
                 if (splitHands[1][0].Suit == 'Hearts'){
@@ -599,13 +576,13 @@ async function split(){
                 card.id = "temp2" + splitHands[1][0].Name + "" + splitHands[1][0].Suit;
                 thand.appendChild(card);
                 
+                //hit new split hand, then original split hand
                 await sleep(300);
                 hit(splitHands[1], 'temp2');
                 await sleep(300);
                 hit(splitHands[0], 'temp');
                 splitCount++; 
             }
-            
         }
         else{
             return;
@@ -632,6 +609,7 @@ async function stay(){
             dealerTurn = true;
             await sleep(300);
             document.getElementById('hide').style.display = 'none';
+            
             //if dealer has blackjack everyone loses :(
             if(checkVals(dealer) == -1){
                 if(splitHands.length > 0){
@@ -639,8 +617,7 @@ async function stay(){
                         if(checkVals(splitHands[i]) != -1 && checkVals(splitHands[i]) <= 21){
                             lose(tbet[i]);
                             document.getElementById((i + 1)*'t' + "lose").style.display = "block";
-                        }
-                              
+                        }                          
                     }
                 }
                 lose(bet);
@@ -648,6 +625,7 @@ async function stay(){
                 document.getElementById('lose').style.display = 'block';
                 return;
             }
+            //deal cards to the dealer until they're over 16 dealer must always hit below 17
             while(true){
                 await sleep(500);
                 if(checkVals(dealer) <= 16){
@@ -656,14 +634,17 @@ async function stay(){
                     break;
                 }
             }
+
+            //compare the dealer to all of the split hands we've got
             if(splitHands.length > 0){             
                 for(i = 0; i < splitHands.length; i++){
-                    if(checkVals(splitHands[i]) > 21 || checkVals(dealer) > 21){
+                    if(checkVals(splitHands[i]) > 21 || checkVals(dealer) > 21){  //make sure both hands are eligible for comparison
                        continue;
                     }
                     if(checkVals(splitHands[i]) == -1){
                        continue;
                     }
+                    //dealer has a better hand
                     if(checkVals(dealer) > checkVals(splitHands[i])){
                         if(i == 0){
                             document.getElementById('tlose').style.display = 'block';
@@ -672,6 +653,7 @@ async function stay(){
                         }
                         lose(tbet[i]);
                     }
+                    //we have a better hand
                     if(checkVals(dealer) < checkVals(splitHands[i])){
                         if(i == 0){
                             document.getElementById('twin').style.display = 'block';
@@ -680,6 +662,7 @@ async function stay(){
                         }
                         win(tbet[i]);
                     }
+                    //we have same hand
                     if(checkVals(dealer) == checkVals(splitHands[i])){
                         if(i == 0){
                             document.getElementById('tpush').style.display = 'block';
@@ -706,15 +689,17 @@ async function stay(){
                 gameOver = true;
                 return;
             }
-            if(checkVals(dealer) > checkVals(hand)){
+            
+            //compare dealers hand to our hand
+            if(checkVals(dealer) > checkVals(hand)){  //dealer has a better hand
                 lose(bet); 
                 document.getElementById('lose').style.display = 'block';
             }
-            if(checkVals(dealer) < checkVals(hand)){
+            if(checkVals(dealer) < checkVals(hand)){  //we've got better hand
                 win(bet);
                 document.getElementById('win').style.display = 'block';
             }
-            if(checkVals(dealer) == checkVals(hand)){
+            if(checkVals(dealer) == checkVals(hand)){  //we have same hand
                 document.getElementById('push').style.display = 'block';
                 push();
             }   
@@ -723,17 +708,15 @@ async function stay(){
     }
 }
 
-//add value to balance
-//IMPORTANT: WHEN IMPLEMENTING DEALER BUSTING MAKE SURE WE DONT SKIP WINNING BOTH OUR BETS
+//add value to balance and let us bet again
 function win(tBet){
-    console.log("We won" + tBet)
     balance += tBet;
     document.getElementById('bal').innerHTML = "Balance: " + balance;
     document.getElementById('bet').disabled = false;
     document.getElementById('bet').value = ogbet;
 }
 
-//blackjack win 3:2 
+//blackjack win 3:2  add this value to our balance
 function blackJack(){
     b = bet * 1.5;
     balance += Math.floor(b);
@@ -745,12 +728,11 @@ function blackJack(){
 
 //subtract value from balance
 function lose(tBet){
-    //pay up our bet;  allows for doubling down on splits
-    console.log("we lost " + tBet);
     balance -= tBet;
     document.getElementById('bal').innerHTML = "Balance: " + balance;
     document.getElementById('bet').disabled = false;
     betting = true;
+    //try to reset our bet to the same as last time for ease.  but also make sure it's a responsible bet because we're responsible
     if(ogbet < balance){
         document.getElementById('bet').value = ogbet;
     }else{
@@ -758,21 +740,20 @@ function lose(tBet){
     } 
 }
 
+//let us bet again if we don't win or lose
 function push(){
     document.getElementById('bal').innerHTML = "Balance: " + balance;
 	document.getElementById("bet").disabled = false;
     betting = true;
-    if(bet <= balance){
-        document.getElementById('bet').value = bet;
-    }else{
-        document.getElementById('bet').value = Math.floor(bet/2);
-    }
+    document.getElementById('bet').value = bet;
 }
 
 //checks values in a given hand.  first for blackjack.  Counts aces and gives it all possible values and takes best one
 function checkVals(hand){
     count = 0;
     aces = 0;
+    
+    //check for blackjack
     if(hand.length == 2){
         if(hand[0].Name == 'A'){
             if(hand[1].Value == 10){
@@ -785,6 +766,7 @@ function checkVals(hand){
             }
         }
     }
+
     //add values
     for(var i = 0; i < hand.length; i++){
         if(hand[i].Name == 'A'){  //skip aces for now
@@ -793,39 +775,13 @@ function checkVals(hand){
             count += hand[i].Value;
         }
     }
-    //if end up doing more decks then update this to 4*deck quantity
-    //check ace values at 1 or 11
-    switch(aces){
-        case 1:
-            if(count + 11 <= 21){
-                count += 11;
-            }else{
-                count++;
-            }
-            break;
-        case 2:
-            if(count + 12 <= 21){
-                count += 12;
-            }else{
-                count += 2;
-            }
-            break;
-        case 3:
-            if(count + 13 <= 21){
-                count += 13;
-            }else{
-                count += 3;
-            }
-            break;
-        case 4:
-            if(count + 14 <= 21){
-                count += 14;
-            }else{
-                count += 4;
-            }
-            break;
+    
+    //check ace values at 1 or 11  there's definitely an easier way to do this but 
+    if(11 + aces - 1 + count <= 21){
+        count += (10 + aces);
+    }else{
+        count += aces;
     }
-    //console.log("Our count is: " + count);
     return count;
 }
 
